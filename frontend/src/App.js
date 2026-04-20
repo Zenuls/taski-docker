@@ -4,6 +4,19 @@ import TaskEditModal from "./components/TaskEditModal";
 import Task from "./components/Task";
 import TabList from "./components/TabList";
 
+// Настройка axios для CSRF
+axios.defaults.xsrfCookieName = 'csrftoken';
+axios.defaults.xsrfHeaderName = 'X-CSRFToken';
+axios.defaults.withCredentials = true;
+
+// Функция для получения CSRF токена из cookie
+function getCSRFToken() {
+  const cookieValue = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrftoken='));
+  return cookieValue ? cookieValue.split('=')[1] : '';
+}
+
 axios.interceptors.response.use(function (response) {
   if (response.headers['content-type'] !== 'application/json') {
     alert('unsupport data format in server response')
@@ -29,9 +42,16 @@ const App = () => {
   }, []);
 
   const handleSubmit = (item) => {
+    // Добавляем CSRF токен в заголовки
+    const config = {
+      headers: {
+        'X-CSRFToken': getCSRFToken()
+      }
+    };
+    
     const request = item.id
-      ? axios.put(`/api/tasks/${item.id}/`, item)
-      : axios.post("/api/tasks/", item);
+      ? axios.put(`/api/tasks/${item.id}/`, item, config)
+      : axios.post("/api/tasks/", item, config);
 
     request
       .then((res) => {
@@ -42,8 +62,14 @@ const App = () => {
   };
 
   const handleDelete = (item) => {
+    const config = {
+      headers: {
+        'X-CSRFToken': getCSRFToken()
+      }
+    };
+    
     axios
-      .delete(`/api/tasks/${item.id}/`)
+      .delete(`/api/tasks/${item.id}/`, config)
       .then(refreshList)
       .catch(console.error);
   };
